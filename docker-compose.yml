@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:17.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: recipes
+    ports:
+      - "5441:5432"
+    volumes:
+      - recipe_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d recipes"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    build:
+      context: ./backend/RecipeApi
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=db;Port=5432;Database=recipes;Username=postgres;Password=password
+    command: ["--migrate", "--seed"]
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend/RecipeApi
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      ConnectionStrings__Default: Host=db;Port=5432;Database=recipes;Username=postgres;Password=password
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-https://ollama.com}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemini-3-flash-preview:cloud}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+volumes:
+  recipe_db_data:

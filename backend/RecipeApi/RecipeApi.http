@@ -1,0 +1,25 @@
+@RecipeApi_HostAddress = http://localhost:8081
+
+GET {{RecipeApi_HostAddress}}/healthz
+Accept: application/json
+
+###
+
+GET {{RecipeApi_HostAddress}}/api/ingredients
+Accept: application/json
+
+###
+
+POST {{RecipeApi_HostAddress}}/api/ingredients
+Content-Type: application/json
+
+{
+  "name": "Onion"
+}
+
+###
+
+GET {{RecipeApi_HostAddress}}/api/recipes
+Accept: application/json
+
+###

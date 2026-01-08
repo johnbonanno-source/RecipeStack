@@ -1,0 +1,534 @@
+:root {
+  --bg: #f3efe7;
+  --paper: #ffffff;
+  --ink: #0a0a0a;
+  --muted: #595959;
+  --rule: #d8d0c4;
+  --accent: #b59a5b;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --focus: 0 0 0 3px rgba(181, 154, 91, 0.25);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    Apple Color Emoji,
+    Segoe UI Emoji;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+button {
+  border: 1px solid #000;
+  background: #000;
+  color: #fff;
+  border-radius: 0;
+  padding: 10px 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 0;
+  padding: 10px 12px;
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible {
+  box-shadow: var(--focus);
+}
+
+textarea {
+  resize: vertical;
+}
+
+.page {
+  min-height: 100%;
+}
+
+.siteHeader {
+  background: #000;
+  color: #fff;
+}
+
+.topStrip {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.topStripInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 10px 18px;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.topStripInner a {
+  opacity: 0.9;
+}
+
+.masthead {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 26px 18px 18px;
+  text-align: center;
+}
+
+.logo {
+  font-family:
+    ui-serif,
+    Georgia,
+    Cambria,
+    "Times New Roman",
+    Times,
+    serif;
+  font-size: clamp(44px, 7vw, 86px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+
+.tagline {
+  margin-top: 10px;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.rule {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 18px 60px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+@media (min-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.cardTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.rowFields {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 760px) {
+  .rowFields {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.list {
+  margin-top: 12px;
+  display: grid;
+  gap: 0;
+  max-height: 300px;
+  overflow: auto;
+  border-top: 1px solid var(--rule);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--rule);
+  background: #fff;
+}
+
+.checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.error {
+  border: 1px solid #000;
+  background: #fff;
+  padding: 12px 12px;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow);
+}
+
+.pillList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #faf8f3;
+}
+
+.pill button {
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid #000;
+  background: #000;
+  color: #fff;
+  font-size: 12px;
+}
+
+.ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.recipes {
+  display: grid;
+  gap: 10px;
+}
+
+.details {
+  border-top: 1px solid var(--rule);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 13px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: 12px;
+}
+
+.details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.details > summary::after {
+  content: "▾";
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+.details[open] > summary::after {
+  content: "▴";
+}
+
+.recipeItem {
+  border-top: 1px solid var(--rule);
+  padding-top: 10px;
+}
+
+.recipeItem summary::-webkit-details-marker {
+  display: none;
+}
+
+.recipeSummary {
+  cursor: pointer;
+  user-select: none;
+  font-family:
+    ui-serif,
+    Georgia,
+    Cambria,
+    "Times New Roman",
+    Times,
+    serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.recipeItem summary::after {
+  content: "+";
+  float: right;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  font-weight: 800;
+  opacity: 0.7;
+}
+
+.recipeItem[open] summary::after {
+  content: "–";
+}
+
+.recipeItem > *:not(summary) {
+  margin-top: 10px;
+}
+
+.instructions {
+  margin: 0;
+  color: var(--muted);
+}
+
+.aiOutput {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  background: #faf8f3;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family:
+    ui-serif,
+    Georgia,
+    Cambria,
+    "Times New Roman",
+    Times,
+    serif;
+  line-height: 1.55;
+}
+
+.aiCenter {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.aiTextarea {
+  width: min(100%, 560px);
+}
+
+.aiButton {
+  width: fit-content;
+}
+
+.aiHint {
+  text-align: center;
+}
+
+.aiMenu {
+  margin-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.aiRecipeItem {
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 0;
+}
+
+.aiRecipeSummary {
+  cursor: pointer;
+  user-select: none;
+  font-family:
+    ui-serif,
+    Georgia,
+    Cambria,
+    "Times New Roman",
+    Times,
+    serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.aiRecipeItem summary::-webkit-details-marker {
+  display: none;
+}
+
+.aiRecipeItem summary::after {
+  content: "+";
+  float: right;
+  font-weight: 800;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  opacity: 0.7;
+}
+
+.aiRecipeItem[open] summary::after {
+  content: "–";
+}
+
+.aiRecipeBody {
+  margin-top: 10px;
+  font-family:
+    ui-serif,
+    Georgia,
+    Cambria,
+    "Times New Roman",
+    Times,
+    serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.aiSection {
+  margin-bottom: 10px;
+}
+
+.aiSectionTitle {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.aiList {
+  margin: 0 0 0 18px;
+  padding: 0;
+  line-height: 1.5;
+}
+
+.aiRecipeBody p {
+  margin: 0 0 8px;
+}
+
+.aiExplore {
+  margin-top: 6px;
+  border: 1px solid #000;
+  background: transparent;
+  color: #000;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  padding: 10px 12px;
+}
+
+.aiExplore:hover {
+  background: #000;
+  color: #fff;
+}
+
+.aiButtonRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.aiOutput::selection,
+.aiRecipeBody::selection {
+  background: rgba(181, 154, 91, 0.35);
+}
+
+summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
