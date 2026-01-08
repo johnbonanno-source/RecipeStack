@@ -1,55 +1,168 @@
 import { useEffect, useMemo, useState } from 'react'
 import { apiGet, apiPost } from './api.js'
 
+const sentenceSplitRegex = /(?<=[.!?])\s+(?=[A-Z0-9])/
+
+function splitSentences(text) {
+  if (!text?.trim()) return []
+  return text
+    .split(sentenceSplitRegex)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+function titleCaseWords(value) {
+  return value
+    .trim()
+    .split(/\s+/)
+    .map((word) =>
+      word
+        .split('-')
+        .map((part) => {
+          const lower = part.toLowerCase()
+          return lower ? lower[0].toUpperCase() + lower.slice(1) : lower
+        })
+        .join('-'),
+    )
+    .join(' ')
+}
+
+function normalizeIngredientDisplay(value) {
+  const trimmed = value.trim().replace(/\.+$/, '')
+  if (!trimmed) return ''
+  return titleCaseWords(trimmed)
+}
+
+function parseProcedure(text) {
+  if (!text?.trim()) return []
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const numbered = lines
+    .map((line) => line.match(/^\d+\.\s*(.+)$/))
+    .filter(Boolean)
+    .map((match) => match[1].trim())
+
+  if (numbered.length) return numbered
+
+  const joined = lines.join(' ')
+  return splitSentences(joined)
+}
+
 function parseAiRecipes(text) {
   if (!text?.trim()) return []
 
-  const sections = text
-    .split(/\n\s*\n(?=Recipe\b|[A-Z])/i)
-    .map((b) => b.trim())
-    .filter(Boolean)
+  const lines = text.split(/\r?\n/)
+  const blocks = []
+  let current = []
 
-  const recipes = sections.map((block, idx) => {
-    const lines = block.split('\n').map((l) => l.trim()).filter(Boolean)
-    let title = lines.shift() || `Recipe ${idx + 1}`
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
 
-    // Normalize title like "Recipe 1: Carbonara" -> "Carbonara"
-    const match = title.match(/^recipe\s*\d*[:.\-]?\s*(.+)$/i)
-    if (match?.[1]) title = match[1].trim()
+    if (/^recipe\b/i.test(trimmed) && current.length) {
+      blocks.push(current)
+      current = [trimmed]
+      continue
+    }
 
-    let ingredients = []
-    let steps = []
-    const rest = []
+    current.push(trimmed)
+  }
 
-    for (const line of lines) {
-      if (/^ingredients?\s*:/i.test(line)) {
-        const after = line.replace(/^ingredients?\s*:/i, '').trim()
-        if (after) {
-          ingredients = after.split(/[,;]\s*/).filter(Boolean)
+  if (current.length) blocks.push(current)
+
+  const recipes = (blocks.length ? blocks : [lines])
+    .map((block) => block.filter((line) => line.trim().length > 0))
+    .map((block, idx) => {
+      const lines = [...block]
+      let titleLine = lines.shift() || `Recipe ${idx + 1}`
+      const titleMatch = titleLine.match(/^(?:recipe|name)\s*\d*[:.\-]?\s*(.+)$/i)
+      const title = titleMatch?.[1]?.trim() || titleLine
+
+      let ingredients = []
+      let steps = []
+      const rest = []
+      let section = null
+
+      const pushIngredient = (value) => {
+        const normalized = normalizeIngredientDisplay(value)
+        if (normalized) ingredients.push(normalized)
+      }
+
+      for (const line of lines) {
+        const inlineIngredients = line.match(/^ingredients?\s*:\s*(.+)$/i)
+        if (inlineIngredients?.[1]) {
+          ingredients = inlineIngredients[1]
+            .split(/[,;]\s*/)
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .map(normalizeIngredientDisplay)
+          section = 'ingredients'
+          continue
         }
-      } else if (/^\d+\./.test(line)) {
-        steps.push(line.replace(/^\d+\.\s*/, '').trim())
-      } else {
+
+        const inlineProcedure = line.match(/^(procedure|steps?|method)\s*:\s*(.+)$/i)
+        if (inlineProcedure?.[2]) {
+          steps = splitSentences(inlineProcedure[2])
+          section = 'steps'
+          continue
+        }
+
+        if (/^ingredients?\b/i.test(line)) {
+          section = 'ingredients'
+          continue
+        }
+
+        if (/^(procedure|steps?|method)\b/i.test(line)) {
+          section = 'steps'
+          continue
+        }
+
+        if (section === 'ingredients') {
+          const cleaned = line.replace(/^[-*]\s*/, '').trim()
+          if (!cleaned) continue
+          if (cleaned.includes(',') && !/^[-*]/.test(line)) {
+            cleaned
+              .split(/[,;]\s*/)
+              .map((item) => item.trim())
+              .filter(Boolean)
+              .forEach(pushIngredient)
+          } else {
+            pushIngredient(cleaned)
+          }
+          continue
+        }
+
+        if (section === 'steps') {
+          const numbered = line.match(/^\d+\.\s*(.+)$/)
+          if (numbered?.[1]) {
+            steps.push(numbered[1].trim())
+            continue
+          }
+
+          const bullet = line.replace(/^[-*]\s*/, '').trim()
+          if (bullet) {
+            steps.push(bullet)
+            continue
+          }
+        }
+
         rest.push(line)
       }
-    }
 
-    // If steps were not numbered, attempt to split on sentences.
-    if (steps.length === 0 && rest.length) {
-      const joined = rest.join(' ')
-      steps = joined
-        .split(/(?<=\.)\s+(?=[A-Z])/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-    }
+      if (steps.length === 0 && rest.length) {
+        steps = splitSentences(rest.join(' '))
+      }
 
-    return {
-      title: title || `Recipe ${idx + 1}`,
-      ingredients,
-      steps,
-      fallback: rest.join('\n'),
-    }
-  })
+      return {
+        title: title || `Recipe ${idx + 1}`,
+        ingredients,
+        steps,
+        fallback: rest.join('\n'),
+      }
+    })
 
   return recipes.length ? recipes : [{ title: 'Recipe', ingredients: [], steps: [], fallback: text.trim() }]
 }
@@ -171,32 +284,75 @@ export default function App() {
 
   const aiRecipes = useMemo(() => parseAiRecipes(aiContent), [aiContent])
 
-  function onSaveAiRecipe(recipe) {
-    const newId = -(Date.now())
-    const ingredientsForSave =
-      recipe.ingredients?.length
-        ? recipe.ingredients.map((name, idx) => ({
-            ingredientId: newId * 100 - idx,
-            name,
-            quantity: null,
-            unit: null,
-          }))
-        : []
+  async function ensureIngredientIds(names) {
+    const cleaned = names.map((name) => name.trim()).filter(Boolean)
+    const unique = Array.from(new Set(cleaned))
 
-    const instructions =
-      recipe.steps?.length && recipe.steps.length > 0
-        ? recipe.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')
-        : recipe.fallback ?? ''
+    if (unique.length === 0) return []
 
-    setRecipes((prev) => [
-      ...prev,
-      {
-        id: newId,
-        name: recipe.title || 'Recipe',
-        instructions,
-        ingredients: ingredientsForSave,
-      },
-    ])
+    let current = ingredients
+    const toMap = (list) => new Map(list.map((item) => [item.name.toLowerCase(), item]))
+    let map = toMap(current)
+
+    const missing = unique.filter((name) => !map.has(name.toLowerCase()))
+    let needsRefresh = false
+
+    for (const name of missing) {
+      try {
+        const created = await apiPost('/api/ingredients', { name })
+        current = [...current, created]
+        map.set(created.name.toLowerCase(), created)
+      } catch {
+        needsRefresh = true
+      }
+    }
+
+    if (needsRefresh) {
+      current = await apiGet('/api/ingredients')
+      map = toMap(current)
+    }
+
+    setIngredients(current)
+
+    const ids = unique
+      .map((name) => map.get(name.toLowerCase())?.id)
+      .filter((id) => Number.isInteger(id))
+
+    if (ids.length !== unique.length) {
+      throw new Error('Could not match all ingredients for saving.')
+    }
+
+    return ids
+  }
+
+  async function onSaveAiRecipe(recipe) {
+    setError('')
+    try {
+      const ingredientNames = recipe.ingredients?.map((name) => name.trim()).filter(Boolean) ?? []
+      if (ingredientNames.length === 0) {
+        throw new Error('AI recipe is missing an ingredient list.')
+      }
+
+      const ingredientIds = await ensureIngredientIds(ingredientNames)
+      const instructions =
+        recipe.steps?.length && recipe.steps.length > 0
+          ? recipe.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')
+          : recipe.fallback?.trim() ?? ''
+
+      await apiPost('/api/recipes', {
+        name: recipe.title?.trim() || 'Recipe',
+        instructions: instructions.length ? instructions : null,
+        ingredients: ingredientIds.map((id) => ({
+          ingredientId: id,
+          quantity: null,
+          unit: null,
+        })),
+      })
+
+      await refresh()
+    } catch (e) {
+      setError(e?.message ?? String(e))
+    }
   }
 
   return (
@@ -329,7 +485,7 @@ export default function App() {
                 ))}
               </div>
             ) : (
-              <div className="muted">No AI output yet.</div>
+              <div className="muted aiEmpty">No AI output yet.</div>
             )}
           </section>
         </div>
@@ -345,21 +501,45 @@ export default function App() {
               <div className="muted">No recipes saved yet.</div>
             ) : (
               <div className="recipes">
-                {recipes.map((r) => (
-                  <details key={r.id} className="recipeItem">
-                    <summary className="recipeSummary">{r.name}</summary>
-                    {r.instructions ? <p className="instructions">{r.instructions}</p> : null}
-                    <ul className="ul">
-                      {r.ingredients.map((i) => (
-                        <li key={i.ingredientId}>
-                          {i.name}
-                          {i.quantity == null ? '' : ` · ${i.quantity}`}
-                          {i.unit ? ` ${i.unit}` : ''}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                ))}
+                {recipes.map((r) => {
+                  const procedure = parseProcedure(r.instructions)
+                  return (
+                    <details key={r.id} className="recipeItem">
+                      <summary className="recipeSummary">{r.name}</summary>
+                      <div className="recipeBody">
+                        <div className="aiSection">
+                          <div className="aiSectionTitle">Ingredients</div>
+                          {r.ingredients.length ? (
+                            <ul className="aiList">
+                              {r.ingredients.map((i) => (
+                                <li key={i.ingredientId}>
+                                  {i.name}
+                                  {i.quantity == null ? '' : ` · ${i.quantity}`}
+                                  {i.unit ? ` ${i.unit}` : ''}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div className="muted">No ingredients listed.</div>
+                          )}
+                        </div>
+
+                        <div className="aiSection">
+                          <div className="aiSectionTitle">Procedure</div>
+                          {procedure.length ? (
+                            <ol className="aiList">
+                              {procedure.map((step, i) => (
+                                <li key={i}>{step}</li>
+                              ))}
+                            </ol>
+                          ) : (
+                            <div className="muted">No procedure yet.</div>
+                          )}
+                        </div>
+                      </div>
+                    </details>
+                  )
+                })}
               </div>
             )}
           </details>

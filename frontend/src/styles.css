@@ -477,6 +477,20 @@ textarea {
   color: var(--ink);
 }
 
+.recipeBody {
+  margin-top: 10px;
+  font-family:
+    ui-serif,
+    Georgia,
+    Cambria,
+    "Times New Roman",
+    Times,
+    serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
 .aiSection {
   margin-bottom: 10px;
 }
@@ -521,6 +535,12 @@ textarea {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 8px;
+  justify-content: center;
+}
+
+.aiEmpty {
+  text-align: center;
+  margin-top: 12px;
 }
 
 .aiOutput::selection,

@@ -266,8 +266,17 @@ api.MapPost("/ai/recipes", async (
 
     var userPrompt =
         $"Ingredients I have:\n- {string.Join("\n- ", ingredientNames)}\n\n" +
-        $"Suggest up to {maxRecipes} recipes. For each recipe include:\n" +
-        "1) Name\n2) Ingredients used (subset of my ingredients + pantry staples)\n3) Steps (3-6 steps)\n";
+        $"Suggest up to {maxRecipes} recipes.\n" +
+        "Return each recipe in this exact format:\n" +
+        "Recipe: <Name>\n" +
+        "INGREDIENTS\n" +
+        "- item\n" +
+        "- item\n" +
+        "PROCEDURE\n" +
+        "1. step\n" +
+        "2. step\n" +
+        "\n" +
+        "Separate recipes with a blank line.\n";
 
     if (!string.IsNullOrWhiteSpace(request.Notes))
     {
