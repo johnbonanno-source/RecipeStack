@@ -14,6 +14,10 @@ public sealed class RecipeDbContext(DbContextOptions<RecipeDbContext> options) :
         modelBuilder.Entity<Ingredient>(entity =>
         {
             entity.Property(i => i.Name).HasMaxLength(200);
+            entity.Property(i => i.Location)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .HasDefaultValue(StorageLocation.Pantry);
             entity.HasIndex(i => i.Name).IsUnique();
         });
 

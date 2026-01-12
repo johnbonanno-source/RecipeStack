@@ -52,8 +52,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
-await NormalizeExistingIngredientsAsync(app.Services);
-
 if (args.Contains("--migrate"))
 {
     using var scope = app.Services.CreateScope();
@@ -69,6 +67,8 @@ if (args.Contains("--migrate"))
     return;
 }
 
+await NormalizeExistingIngredientsAsync(app.Services);
+
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
 
 var api = app.MapGroup("/api");
@@ -78,7 +78,7 @@ api.MapGet("/ingredients", async (RecipeDbContext db) =>
     var ingredients = await db.Ingredients
         .AsNoTracking()
         .OrderBy(i => i.Name)
-        .Select(i => new IngredientDto(i.Id, i.Name))
+        .Select(i => new IngredientDto(i.Id, i.Name, i.Location.ToString()))
         .ToListAsync();
 
     return Results.Ok(ingredients);
@@ -92,7 +92,17 @@ api.MapPost("/ingredients", async (RecipeDbContext db, CreateIngredientRequest r
         return Results.BadRequest(new { message = "Name is required." });
     }
 
-    var ingredient = new Ingredient { Name = name };
+    StorageLocation location;
+    try
+    {
+        location = ParseLocation(request.Location);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+
+    var ingredient = new Ingredient { Name = name, Location = location };
     db.Ingredients.Add(ingredient);
 
     try
@@ -104,7 +114,10 @@ api.MapPost("/ingredients", async (RecipeDbContext db, CreateIngredientRequest r
         return Results.Conflict(new { message = "Ingredient already exists." });
     }
 
-    return Results.Created($"/api/ingredients/{ingredient.Id}", new IngredientDto(ingredient.Id, ingredient.Name));
+    return Results.Created($"/api/ingredients/{ingredient.Id}", new IngredientDto(
+        ingredient.Id,
+        ingredient.Name,
+        ingredient.Location.ToString()));
 });
 
 api.MapGet("/recipes", async (RecipeDbContext db) =>
@@ -317,6 +330,21 @@ static string NormalizeIngredientName(string raw)
     return text.ToTitleCase(cleaned.ToLowerInvariant());
 }
 
+static StorageLocation ParseLocation(string? value)
+{
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        return StorageLocation.Pantry;
+    }
+
+    if (Enum.TryParse<StorageLocation>(value, true, out var parsed))
+    {
+        return parsed;
+    }
+
+    throw new ArgumentException("Location must be Fridge, Pantry, or Freezer.");
+}
+
 static async Task NormalizeExistingIngredientsAsync(IServiceProvider services)
 {
     using var scope = services.CreateScope();
@@ -349,17 +377,17 @@ static async Task SeedDataAsync(RecipeDbContext db)
 
     var ingredients = new[]
     {
-        new Ingredient { Name = "Flour" },
-        new Ingredient { Name = "Eggs" },
-        new Ingredient { Name = "Milk" },
-        new Ingredient { Name = "Sugar" },
-        new Ingredient { Name = "Butter" },
-        new Ingredient { Name = "Salt" },
-        new Ingredient { Name = "Tomato" },
-        new Ingredient { Name = "Basil" },
-        new Ingredient { Name = "Garlic" },
-        new Ingredient { Name = "Olive Oil" },
-        new Ingredient { Name = "Pasta" },
+        new Ingredient { Name = "Flour", Location = StorageLocation.Pantry },
+        new Ingredient { Name = "Eggs", Location = StorageLocation.Fridge },
+        new Ingredient { Name = "Milk", Location = StorageLocation.Fridge },
+        new Ingredient { Name = "Sugar", Location = StorageLocation.Pantry },
+        new Ingredient { Name = "Butter", Location = StorageLocation.Fridge },
+        new Ingredient { Name = "Salt", Location = StorageLocation.Pantry },
+        new Ingredient { Name = "Tomato", Location = StorageLocation.Pantry },
+        new Ingredient { Name = "Basil", Location = StorageLocation.Freezer },
+        new Ingredient { Name = "Garlic", Location = StorageLocation.Pantry },
+        new Ingredient { Name = "Olive Oil", Location = StorageLocation.Pantry },
+        new Ingredient { Name = "Pasta", Location = StorageLocation.Pantry },
     };
 
     db.Ingredients.AddRange(ingredients);

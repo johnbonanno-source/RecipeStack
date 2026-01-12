@@ -167,6 +167,8 @@ function parseAiRecipes(text) {
   return recipes.length ? recipes : [{ title: 'Recipe', ingredients: [], steps: [], fallback: text.trim() }]
 }
 
+const storageLocations = ['Fridge', 'Pantry', 'Freezer']
+
 export default function App() {
   const [ingredients, setIngredients] = useState([])
   const [recipes, setRecipes] = useState([])
@@ -182,6 +184,8 @@ export default function App() {
   const [recipeIngredientQty, setRecipeIngredientQty] = useState('')
   const [recipeIngredientUnit, setRecipeIngredientUnit] = useState('')
   const [recipeIngredients, setRecipeIngredients] = useState([])
+
+  const [activeLocation, setActiveLocation] = useState('Pantry')
 
   const [pantry, setPantry] = useState(() => new Set())
   const [error, setError] = useState('')
@@ -199,6 +203,10 @@ export default function App() {
   }, [])
 
   const pantryIds = useMemo(() => Array.from(pantry.values()).sort((a, b) => a - b), [pantry])
+  const visibleIngredients = useMemo(
+    () => ingredients.filter((item) => (item.location ?? 'Pantry') === activeLocation),
+    [ingredients, activeLocation],
+  )
 
   async function refresh() {
     const [i, r] = await Promise.all([apiGet('/api/ingredients'), apiGet('/api/recipes')])
@@ -210,7 +218,7 @@ export default function App() {
     e.preventDefault()
     setError('')
     try {
-      await apiPost('/api/ingredients', { name: ingredientName })
+      await apiPost('/api/ingredients', { name: ingredientName, location: activeLocation })
       setIngredientName('')
       await refresh()
     } catch (e) {
@@ -386,7 +394,9 @@ export default function App() {
           <section id="ingredients" className="card">
             <div className="cardTitle">
               <h2>Ingredients</h2>
-              <span className="muted">{ingredients.length} total</span>
+              <span className="muted">
+                {activeLocation} · {visibleIngredients.length}
+              </span>
             </div>
 
             <form onSubmit={onAddIngredient} className="row">
@@ -399,11 +409,25 @@ export default function App() {
             </form>
 
             <div className="list">
-              {ingredients.map((i) => (
+              {visibleIngredients.map((i) => (
                 <label key={i.id} className="checkbox">
                   <input type="checkbox" checked={pantry.has(i.id)} onChange={() => togglePantry(i.id)} />
                   <span>{i.name}</span>
                 </label>
+              ))}
+            </div>
+
+            <div className="ingredientTabs">
+              {storageLocations.map((location) => (
+                <button
+                  key={location}
+                  type="button"
+                  className={`ingredientTab${location === activeLocation ? ' active' : ''}`}
+                  onClick={() => setActiveLocation(location)}
+                  aria-pressed={location === activeLocation}
+                >
+                  {location}
+                </button>
               ))}
             </div>
           </section>

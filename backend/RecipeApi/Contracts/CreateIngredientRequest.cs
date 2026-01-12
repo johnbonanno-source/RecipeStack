@@ -1,3 +1,3 @@
 namespace RecipeApi.Contracts;
 
-public sealed record CreateIngredientRequest(string Name);
+public sealed record CreateIngredientRequest(string Name, string? Location);
