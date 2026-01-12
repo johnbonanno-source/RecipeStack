@@ -395,7 +395,7 @@ export default function App() {
             <div className="cardTitle">
               <h2>Ingredients</h2>
               <span className="muted">
-                {activeLocation} · {visibleIngredients.length}
+                {activeLocation} / {visibleIngredients.length}
               </span>
             </div>
 
