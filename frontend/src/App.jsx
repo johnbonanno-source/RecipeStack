@@ -168,6 +168,7 @@ function parseAiRecipes(text) {
 }
 
 const storageLocations = ['Fridge', 'Pantry', 'Freezer']
+const ingredientViews = [...storageLocations, 'Manual Entry']
 
 export default function App() {
   const [ingredients, setIngredients] = useState([])
@@ -185,7 +186,8 @@ export default function App() {
   const [recipeIngredientUnit, setRecipeIngredientUnit] = useState('')
   const [recipeIngredients, setRecipeIngredients] = useState([])
 
-  const [activeLocation, setActiveLocation] = useState('Pantry')
+  const [activeView, setActiveView] = useState('Manual Entry')
+  const [manualLocation, setManualLocation] = useState('Pantry')
 
   const [pantry, setPantry] = useState(() => new Set())
   const [error, setError] = useState('')
@@ -203,9 +205,20 @@ export default function App() {
   }, [])
 
   const pantryIds = useMemo(() => Array.from(pantry.values()).sort((a, b) => a - b), [pantry])
-  const visibleIngredients = useMemo(
-    () => ingredients.filter((item) => (item.location ?? 'Pantry') === activeLocation),
-    [ingredients, activeLocation],
+  const ingredientsByLocation = useMemo(() => {
+    const grouped = Object.fromEntries(storageLocations.map((location) => [location, []]))
+    for (const item of ingredients) {
+      const location = storageLocations.includes(item.location) ? item.location : 'Pantry'
+      grouped[location].push(item)
+    }
+    for (const location of storageLocations) {
+      grouped[location].sort((a, b) => a.name.localeCompare(b.name))
+    }
+    return grouped
+  }, [ingredients])
+  const locationCounts = useMemo(
+    () => storageLocations.map((location) => `${location} ${ingredientsByLocation[location].length}`).join(' · '),
+    [ingredientsByLocation],
   )
 
   async function refresh() {
@@ -218,7 +231,7 @@ export default function App() {
     e.preventDefault()
     setError('')
     try {
-      await apiPost('/api/ingredients', { name: ingredientName, location: activeLocation })
+      await apiPost('/api/ingredients', { name: ingredientName, location: manualLocation })
       setIngredientName('')
       await refresh()
     } catch (e) {
@@ -395,38 +408,81 @@ export default function App() {
             <div className="cardTitle">
               <h2>Ingredients</h2>
               <span className="muted">
-                {activeLocation} / {visibleIngredients.length}
+                {activeView === 'Manual Entry' ? locationCounts : `${activeView} Photo`}
               </span>
             </div>
 
-            <form onSubmit={onAddIngredient} className="row">
-              <input
-                value={ingredientName}
-                onChange={(e) => setIngredientName(e.target.value)}
-                placeholder="Add ingredient (e.g., Onion)"
-              />
-              <button type="submit">Add</button>
-            </form>
+            {activeView === 'Manual Entry' ? (
+              <>
+                <form onSubmit={onAddIngredient} className="ingredientAddRow">
+                  <input
+                    value={ingredientName}
+                    onChange={(e) => setIngredientName(e.target.value)}
+                    placeholder="Add ingredient (e.g., Onion)"
+                  />
+                  <select value={manualLocation} onChange={(e) => setManualLocation(e.target.value)}>
+                    {storageLocations.map((location) => (
+                      <option key={location} value={location}>
+                        {location}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="submit">Add</button>
+                </form>
 
-            <div className="list">
-              {visibleIngredients.map((i) => (
-                <label key={i.id} className="checkbox">
-                  <input type="checkbox" checked={pantry.has(i.id)} onChange={() => togglePantry(i.id)} />
-                  <span>{i.name}</span>
-                </label>
-              ))}
-            </div>
+                <div className="ingredientColumns">
+                  {storageLocations.map((location) => (
+                    <div key={location} className="ingredientColumn">
+                      <div className="ingredientColumnHeader">{location}</div>
+                      <div className="ingredientList">
+                        {ingredientsByLocation[location].length === 0 ? (
+                          <div className="muted ingredientEmpty">No items</div>
+                        ) : (
+                          ingredientsByLocation[location].map((i) => (
+                            <label key={i.id} className="checkbox">
+                              <input type="checkbox" checked={pantry.has(i.id)} onChange={() => togglePantry(i.id)} />
+                              <span>{i.name}</span>
+                            </label>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="uploadPanel">
+                <div className="uploadCard">
+                  <svg className="uploadIcon" viewBox="0 0 120 80" role="img" aria-label="Upload">
+                    <path
+                      d="M84 60H35c-10 0-18-8-18-18 0-9 6-16 14-18 3-11 14-18 26-18 13 0 24 8 27 20 10 1 18 9 18 20 0 9-8 16-18 16z"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      strokeLinejoin="round"
+                    />
+                    <path d="M60 24v28M60 24l-10 10M60 24l10 10" fill="none" stroke="currentColor" strokeWidth="4" />
+                  </svg>
+                  <div className="uploadTitle">Drag files to upload</div>
+                  <div className="uploadSubtitle">or</div>
+                  <label className="uploadButton">
+                    Select files to upload
+                    <input type="file" accept="image/*" />
+                  </label>
+                </div>
+              </div>
+            )}
 
             <div className="ingredientTabs">
-              {storageLocations.map((location) => (
+              {ingredientViews.map((view) => (
                 <button
-                  key={location}
+                  key={view}
                   type="button"
-                  className={`ingredientTab${location === activeLocation ? ' active' : ''}`}
-                  onClick={() => setActiveLocation(location)}
-                  aria-pressed={location === activeLocation}
+                  className={`ingredientTab${view === activeView ? ' active' : ''}`}
+                  onClick={() => setActiveView(view)}
+                  aria-pressed={view === activeView}
                 >
-                  {location}
+                  {view}
                 </button>
               ))}
             </div>

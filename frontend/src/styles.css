@@ -217,6 +217,10 @@ textarea {
   .rowFields {
     grid-template-columns: 1fr 1fr;
   }
+
+  .ingredientAddRow {
+    grid-template-columns: 1fr;
+  }
 }
 
 .stack {
@@ -233,9 +237,48 @@ textarea {
   border-top: 1px solid var(--rule);
 }
 
+.ingredientAddRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.ingredientColumns {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.ingredientColumn {
+  border: 1px solid var(--rule);
+  background: #fff;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 220px;
+}
+
+.ingredientColumnHeader {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--rule);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+}
+
+.ingredientList {
+  max-height: 240px;
+  overflow: auto;
+}
+
+.ingredientEmpty {
+  padding: 10px 8px;
+}
+
 .ingredientTabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   margin-top: 12px;
   border: 1px solid var(--rule);
 }
@@ -258,6 +301,55 @@ textarea {
 .ingredientTab.active {
   background: #000;
   color: #fff;
+}
+
+.uploadPanel {
+  display: grid;
+  place-items: center;
+  margin-top: 12px;
+  min-height: 260px;
+  border: 1px dashed var(--rule);
+  background: #faf8f3;
+}
+
+.uploadCard {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px 18px;
+}
+
+.uploadIcon {
+  width: 120px;
+  height: 80px;
+  color: var(--accent);
+}
+
+.uploadTitle {
+  font-weight: 600;
+}
+
+.uploadSubtitle {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.uploadButton {
+  border: 1px solid #000;
+  background: #000;
+  color: #fff;
+  border-radius: 0;
+  padding: 12px 16px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}
+
+.uploadButton input[type="file"] {
+  display: none;
 }
 
 .checkbox {
