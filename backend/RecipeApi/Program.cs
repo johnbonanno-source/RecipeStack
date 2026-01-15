@@ -120,6 +120,20 @@ api.MapPost("/ingredients", async (RecipeDbContext db, CreateIngredientRequest r
         ingredient.Location.ToString()));
 });
 
+api.MapDelete("/ingredients/{id:int}", async (RecipeDbContext db, int id) =>
+{
+    var ingredient = await db.Ingredients.FindAsync(id);
+    if (ingredient is null)
+    {
+        return Results.NotFound();
+    }
+
+    db.Ingredients.Remove(ingredient);
+    await db.SaveChangesAsync();
+
+    return Results.NoContent();
+});
+
 api.MapGet("/recipes", async (RecipeDbContext db) =>
 {
     var recipes = await db.Recipes
@@ -370,29 +384,75 @@ static async Task NormalizeExistingIngredientsAsync(IServiceProvider services)
 
 static async Task SeedDataAsync(RecipeDbContext db)
 {
-    if (await db.Ingredients.AnyAsync() || await db.Recipes.AnyAsync())
+    var defaultIngredients = new (string Name, StorageLocation Location)[]
+    {
+        ("Flour", StorageLocation.Pantry),
+        ("Sugar", StorageLocation.Pantry),
+        ("Salt", StorageLocation.Pantry),
+        ("Black Pepper", StorageLocation.Pantry),
+        ("Olive Oil", StorageLocation.Pantry),
+        ("Pasta", StorageLocation.Pantry),
+        ("Tomato", StorageLocation.Pantry),
+        ("Garlic", StorageLocation.Pantry),
+
+        ("Eggs", StorageLocation.Fridge),
+        ("Milk", StorageLocation.Fridge),
+        ("Butter", StorageLocation.Fridge),
+        ("Basil", StorageLocation.Fridge),
+        ("Bacon", StorageLocation.Fridge),
+        ("Ham", StorageLocation.Fridge),
+        ("Chicken Thigh", StorageLocation.Fridge),
+
+        ("Chicken Breast", StorageLocation.Freezer),
+    };
+
+    var existing = await db.Ingredients.ToListAsync();
+    var byKey = existing.ToDictionary(
+        i => NormalizeIngredientName(i.Name).ToLowerInvariant(),
+        i => i);
+
+    var updated = false;
+    foreach (var (name, location) in defaultIngredients)
+    {
+        var normalized = NormalizeIngredientName(name);
+        var key = normalized.ToLowerInvariant();
+
+        if (byKey.TryGetValue(key, out var ingredient))
+        {
+            if (!string.Equals(ingredient.Name, normalized, StringComparison.Ordinal))
+            {
+                ingredient.Name = normalized;
+                updated = true;
+            }
+
+            if (ingredient.Location != location)
+            {
+                ingredient.Location = location;
+                updated = true;
+            }
+
+            continue;
+        }
+
+        var created = new Ingredient { Name = normalized, Location = location };
+        db.Ingredients.Add(created);
+        byKey[key] = created;
+        updated = true;
+    }
+
+    if (updated)
+    {
+        await db.SaveChangesAsync();
+    }
+
+    if (await db.Recipes.AnyAsync())
     {
         return;
     }
 
-    var ingredients = new[]
-    {
-        new Ingredient { Name = "Flour", Location = StorageLocation.Pantry },
-        new Ingredient { Name = "Eggs", Location = StorageLocation.Fridge },
-        new Ingredient { Name = "Milk", Location = StorageLocation.Fridge },
-        new Ingredient { Name = "Sugar", Location = StorageLocation.Pantry },
-        new Ingredient { Name = "Butter", Location = StorageLocation.Fridge },
-        new Ingredient { Name = "Salt", Location = StorageLocation.Pantry },
-        new Ingredient { Name = "Tomato", Location = StorageLocation.Pantry },
-        new Ingredient { Name = "Basil", Location = StorageLocation.Freezer },
-        new Ingredient { Name = "Garlic", Location = StorageLocation.Pantry },
-        new Ingredient { Name = "Olive Oil", Location = StorageLocation.Pantry },
-        new Ingredient { Name = "Pasta", Location = StorageLocation.Pantry },
-    };
-
-    db.Ingredients.AddRange(ingredients);
-
-    var byName = ingredients.ToDictionary(i => i.Name);
+    var byName = defaultIngredients.ToDictionary(
+        i => NormalizeIngredientName(i.Name),
+        i => byKey[NormalizeIngredientName(i.Name).ToLowerInvariant()]);
 
     var pancakes = new Recipe
     {

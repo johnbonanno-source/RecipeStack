@@ -16,6 +16,12 @@ export async function apiPost(path, body) {
   return res.status === 204 ? null : res.json()
 }
 
+export async function apiDelete(path) {
+  const res = await fetch(`${API_BASE}${path}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error(await safeMessage(res))
+  return null
+}
+
 async function safeMessage(res) {
   try {
     const text = await res.text()

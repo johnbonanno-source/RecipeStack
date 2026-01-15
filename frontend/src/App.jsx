@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { apiGet, apiPost } from './api.js'
+import { apiDelete, apiGet, apiPost } from './api.js'
 
 const sentenceSplitRegex = /(?<=[.!?])\s+(?=[A-Z0-9])/
 
@@ -191,6 +191,9 @@ export default function App() {
 
   const [pantry, setPantry] = useState(() => new Set())
   const [error, setError] = useState('')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteTargets, setDeleteTargets] = useState([])
 
   useEffect(() => {
     ;(async () => {
@@ -283,6 +286,44 @@ export default function App() {
       else next.add(id)
       return next
     })
+  }
+
+  async function deleteIngredientById(id) {
+    await apiDelete(`/api/ingredients/${id}`)
+    setPantry((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+  }
+
+  function openDeleteDialog() {
+    const selected = pantryIds
+      .map((id) => ingredients.find((i) => i.id === id))
+      .filter(Boolean)
+      .map((i) => ({ id: i.id, name: i.name }))
+
+    if (selected.length === 0) return
+    setDeleteTargets(selected)
+    setDeleteDialogOpen(true)
+  }
+
+  async function confirmDeleteSelected() {
+    if (deleteTargets.length === 0) return
+    setError('')
+    setDeleteLoading(true)
+    try {
+      for (const target of deleteTargets) {
+        await deleteIngredientById(target.id)
+      }
+      setDeleteDialogOpen(false)
+      setDeleteTargets([])
+      await refresh()
+    } catch (e) {
+      setError(e?.message ?? String(e))
+    } finally {
+      setDeleteLoading(false)
+    }
   }
 
   async function onGenerateAiRecipes() {
@@ -396,10 +437,44 @@ export default function App() {
       </header>
 
       <main className="container">
-
         {error ? (
           <div className="error" role="alert">
             {error}
+          </div>
+        ) : null}
+
+        {deleteDialogOpen ? (
+          <div className="modalOverlay" role="dialog" aria-modal="true" aria-label="Confirm delete ingredients">
+            <div className="modalCard">
+              <div className="modalTitle">Delete selected ingredients?</div>
+              <div className="modalBody">
+                <div className="muted">
+                  This will remove {deleteTargets.length} item{deleteTargets.length === 1 ? '' : 's'} from your database.
+                </div>
+                <ul className="ul">
+                  {deleteTargets.map((t) => (
+                    <li key={t.id}>{t.name}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="modalActions">
+                <button
+                  type="button"
+                  className="secondaryButton"
+                  disabled={deleteLoading}
+                  onClick={() => {
+                    if (deleteLoading) return
+                    setDeleteDialogOpen(false)
+                    setDeleteTargets([])
+                  }}
+                >
+                  Cancel
+                </button>
+                <button type="button" className="dangerButton" disabled={deleteLoading} onClick={confirmDeleteSelected}>
+                  {deleteLoading ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
           </div>
         ) : null}
 
@@ -427,7 +502,17 @@ export default function App() {
                       </option>
                     ))}
                   </select>
-                  <button type="submit">Add</button>
+                  <div className="ingredientAddActions">
+                    <button type="submit">Add</button>
+                    <button
+                      type="button"
+                      className="dangerButton"
+                      onClick={openDeleteDialog}
+                      disabled={pantryIds.length === 0 || deleteLoading}
+                    >
+                      Delete Selected
+                    </button>
+                  </div>
                 </form>
 
                 <div className="ingredientColumns">
